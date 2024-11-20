@@ -40,5 +40,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
                     defaultValueComputed: "CURRENT_TIMESTAMP"
-
-
+              - column:
+                  name: transaction_id
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: VARCHAR(64)

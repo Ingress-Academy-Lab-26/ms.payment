@@ -16,10 +16,10 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 )
 public interface AuthClient {
     @PostMapping("/v1/token/verify")
-    ResponseEntity<Void> verifyToken(@RequestHeader(AUTHORIZATION) String accessToken);
+    boolean verifyToken(@RequestHeader(AUTHORIZATION) String accessToken);
 
     /*
     @PostMapping("/validate-token")
     AuthResponseDto validateToken(@RequestHeader("Authorization") String accessToken);
-     */
+    */
 }

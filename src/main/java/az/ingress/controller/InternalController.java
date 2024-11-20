@@ -3,6 +3,7 @@ package az.ingress.controller;
 import az.ingress.model.enums.PaymentStatus;
 import az.ingress.service.abstraction.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,7 +17,8 @@ public class InternalController {
     private final PaymentService paymentService;
 
     @GetMapping("/payments/{id}")
+    @PreAuthorize("@authServiceHandler.verifyToken(#accessToken)")
     public PaymentStatus getPaymentStatus(@RequestHeader String accessToken, @PathVariable Long id){
-        return paymentService.getPaymentStatus(accessToken, id);
+        return paymentService.getPaymentStatus(id);
     }
 }

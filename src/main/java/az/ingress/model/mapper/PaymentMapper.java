@@ -4,27 +4,21 @@ import az.ingress.dao.entity.PaymentEntity;
 import az.ingress.model.enums.PaymentStatus;
 import az.ingress.model.request.PaymentDto;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
 public enum PaymentMapper {
     PAYMENT_MAPPER;
-    public static PaymentEntity buildPaymentEntity(PaymentDto paymentDto, PaymentStatus status){
+    public PaymentEntity buildPaymentEntity(PaymentDto paymentDto, PaymentStatus status){
         return  PaymentEntity.builder()
+                .cardId(paymentDto.getCardId())
                 .amount(paymentDto.getAmount())
-                .status(status)
+                .transactionId(UUID.randomUUID().toString())
                 .build();
     }
 
-    public static PaymentDto buildPaymentDto(PaymentEntity paymentEntity){
+    public PaymentDto buildPaymentDto(PaymentEntity paymentEntity){
         return  PaymentDto.builder()
                 .amount(paymentEntity.getAmount())
                 .build();
-    }
-
-    public static List<PaymentDto> buildPaymentDtoList(List<PaymentEntity> paymentEntityList){
-        return  paymentEntityList.stream()
-                .map(PaymentMapper::buildPaymentDto)
-                .toList();
     }
 }

@@ -8,11 +8,11 @@ import java.util.List;
 
 @Service
 public interface PaymentService {
-    void refundPayment(String accessToken, Long id);
+    void refundPayment(Long id);
 
-    void processPayment(String accessToken, PaymentDto paymentDto);
+    void processPayment(Long userId, PaymentDto paymentDto);
 
-    List<PaymentDto> getPayments(String accessToken);
+    List<PaymentDto> getPayments();
 
-    PaymentStatus getPaymentStatus(String accessToken, Long id);
+    PaymentStatus getPaymentStatus(Long id);
 }

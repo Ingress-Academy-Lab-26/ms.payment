@@ -1,66 +1,75 @@
 package az.ingress.service.concrete;
 
+import az.ingress.aop.annotation.Log;
 import az.ingress.dao.entity.PaymentEntity;
 import az.ingress.dao.repository.PaymentRepository;
-import az.ingress.exception.InsufficientBalanceException;
 import az.ingress.exception.PaymentProcessingException;
+import az.ingress.service.abstraction.PaymentGateway;
 import az.ingress.service.abstraction.PaymentProcessor;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-
 import static az.ingress.exception.ErrorMessage.PAYMENT_PROCESSING_EXCEPTION;
-import static az.ingress.model.enums.PaymentStatus.COMPLETED;
-import static az.ingress.model.enums.PaymentStatus.FAILED;
+import static az.ingress.exception.ErrorMessage.REFUND_EXCEPTION;
+import static az.ingress.model.enums.PaymentStatus.*;
+import static az.ingress.model.mapper.PaymentMapper.*;
 
 @Service
-@Slf4j
+@Log
 @RequiredArgsConstructor
 public class PaymentProcessorHandler implements PaymentProcessor {
-    PaymentRepository paymentRepository;
-    CardService cardService;
-    private final AmqpTemplate amqpTemplate;
+    private final PaymentRepository paymentRepository;
+    private final PaymentGateway paymentGateway;
 
 
-    @RabbitListener(queues = "paymentQueue")
+    @Value("${rabbitmq.payment.queue}")
+    private String paymentQueue;
+
+    @Value("${rabbitmq.refund.queue}")
+    private String refundQueue;
+
+    @Retryable(
+            maxAttempts = 5,
+            backoff = @Backoff(
+                    delay = 1000,
+                    maxDelay = 10000,
+                    multiplier = 2.0
+            )
+    )
+    @RabbitListener(queues = "${rabbitmq.payment.queue}")
     @Override
-    public void processPayment(String accessToken, PaymentEntity paymentEntity) {
+    public void processPayment(PaymentEntity paymentEntity) {
+        boolean isAlreadyProcessed = paymentRepository.existsByIdempotencyKey(paymentEntity.getIdempotencyKey());
+        if (isAlreadyProcessed) {
+            // log.info("Payment with idempotencyKey {} is already processed. Skipping...", paymentEntity.getIdempotencyKey());
+            return;
+        }
         try {
-            boolean paymentSuccessful = cardService.processCardPayment(accessToken, paymentEntity.getAmount());
-            if (!paymentSuccessful) {
-                throw new InsufficientBalanceException("User does not have enough balance.", 422);
-            }
-            log.info("ActionLog.info Procession payment for paymentId:{} successful.", paymentEntity.getId());
-
+            paymentGateway.processPayment(PAYMENT_MAPPER.buildPaymentDto(paymentEntity));
             paymentEntity.setStatus(COMPLETED);
             paymentRepository.save(paymentEntity);
-            log.info("ActionLog.info Payment status successfully changed for paymentId:{}", paymentEntity.getId());
-        }
-        catch (Exception e) {
-            log.error("ActionLog.error Error processing payment for paymentId: {}, Error: {}", paymentEntity.getId(), e.getMessage());
+        } catch (Exception e) {
             paymentEntity.setStatus(FAILED);
             paymentRepository.save(paymentEntity);
-
-            amqpTemplate.convertAndSend("dlq-exchange", "dlq-paymentQueue", paymentEntity);
-            log.info("Message sent to DLQ for paymentId: {}", paymentEntity.getId());
             throw new PaymentProcessingException(PAYMENT_PROCESSING_EXCEPTION.getMessage(), 422);
         }
     }
 
-    @RabbitListener(queues = "refundQueue")
+    @RabbitListener(queues = "${rabbitmq.refund.queue}")
     @Override
-    public void processRefund(String accessToken, PaymentEntity paymentEntity) {
+    public void processRefund(PaymentEntity paymentEntity) {
         try {
-            cardService.refundPayment(accessToken, paymentEntity.getAmount());
-            log.info("ActionLog.info Message: Refund processed for payment Id: {}", paymentEntity.getId());
+            paymentGateway.processRefund(PAYMENT_MAPPER.buildPaymentDto(paymentEntity));
+            paymentEntity.setStatus(REFUNDED);
+            paymentRepository.save(paymentEntity);
         } catch (Exception e) {
-            amqpTemplate.convertAndSend("dlq-exchange", "dlq-refundQueue", paymentEntity);
-            log.info("Message sent to DLQ for refund of paymentId: {}", paymentEntity.getId());
-            //log.error("ActionLog.error Error processing refund for payment Id: {}, Error: {}", paymentEntity.getId(), e.getMessage());
+            paymentEntity.setStatus(FAILED);
+            paymentRepository.save(paymentEntity);
+            throw new PaymentProcessingException(REFUND_EXCEPTION.getMessage(), 422);
         }
     }
 }

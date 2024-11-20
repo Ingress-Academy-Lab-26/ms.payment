@@ -3,20 +3,15 @@ package az.ingress.controller;
 import az.ingress.model.enums.PaymentStatus;
 import az.ingress.model.request.PaymentDto;
 import az.ingress.service.abstraction.PaymentService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
+
+
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.*;
 
 
 @RestController
@@ -26,33 +21,27 @@ public class PaymentController {
     PaymentService paymentService;
 
     @PostMapping
-    @PreAuthorize("@authService.verifyToken(#accessToken)")
-    public ResponseEntity<String> createPayment(@RequestHeader String accessToken, @RequestBody PaymentDto paymentDto){
-        if(paymentDto.getAmount()==null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid payment details");
-        }
-        
-        paymentService.processPayment(accessToken, paymentDto);
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Payment accepted");
+    @PreAuthorize("@authServiceHandler.verifyToken(#accessToken)")
+    @ResponseStatus(ACCEPTED)
+    public void createPayment(@RequestHeader String accessToken, @RequestParam Long userId, @RequestBody PaymentDto paymentDto){
+        paymentService.processPayment(userId, paymentDto);
     }
 
     @GetMapping()
-    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    @PreAuthorize("@authServiceHandler.verifyToken(#accessToken)")
     public List<PaymentDto> getPayments(@RequestHeader String accessToken){
-        return paymentService.getPayments(accessToken);
+        return paymentService.getPayments();
     }
 
     @GetMapping("{id}")
-    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    @PreAuthorize("@authServiceHandler.verifyToken(#accessToken)")
     public PaymentStatus getPaymentStatus(@RequestHeader String accessToken, @PathVariable Long id){
-
-        return paymentService.getPaymentStatus(accessToken, id);
+        return paymentService.getPaymentStatus(id);
     }
 
     @DeleteMapping("{id}")
-    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    @PreAuthorize("@authServiceHandler.verifyToken(#accessToken)")
     public void refundPayment(@RequestHeader String accessToken, @PathVariable Long id){
-        paymentService.refundPayment(accessToken, id);
+        paymentService.refundPayment(id);
     }
 }

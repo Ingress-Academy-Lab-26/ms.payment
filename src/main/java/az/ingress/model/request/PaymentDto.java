@@ -10,5 +10,12 @@ import java.math.BigDecimal;
 @Setter
 @Builder
 public class PaymentDto {
-    BigDecimal amount;
+    private Long transactionId;
+    private BigDecimal amount;
+    private String pan;
+    private String cvv;
+    private Long cardId;
+    private String cardHolderName;
+    private String expirationDate;
+    private String idempotencyKey;
 }

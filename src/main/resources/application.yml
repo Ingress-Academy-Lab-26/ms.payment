@@ -1,18 +1,22 @@
-client:
-  urls:
-    ms-card: http://localhost:8080
-    ms-auth: http://localhost:8080
-redis:
-  server:
-    urls: redis://localhost:6379
+server:
+  port: 8080
 spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    open-in-view: true
+  liquibase:
+    change-log: classpath:/liquibase/changelog-master.yml
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
-    virtual-host: /
-
     listener:
       simple:
         retry:
@@ -21,31 +25,16 @@ spring:
           max-interval: 10000
           multiplier: 2.0
           max-attempts: 5
-
-    queues:
-      paymentQueue:
-        x-dead-letter-exchange: dlq-exchange  # DLQ üçün exchange təyin edin
-        x-dead-letter-routing-key: dlq-paymentQueue  # DLQ routing key təyin edin
-      refundQueue:
-        x-dead-letter-exchange: dlq-exchange
-        x-dead-letter-routing-key: dlq-refundQueue
-      dlq-paymentQueue:  # DLQ queue
-      dlq-refundQueue:
-
-    exchanges:
-      default: "amq.direct"
-      dlq-exchange: "amq.direct"
-
-    bindings:
-      - queue: paymentQueue
-        exchange: default
-        routing-key: paymentQueue
-      - queue: refundQueue
-        exchange: default
-        routing-key: refundQueue
-      - queue: dlq-paymentQueue
-        exchange: dlq-exchange
-        routing-key: dlq-paymentQueue
-      - queue: dlq-refundQueue
-        exchange: dlq-exchange
-        routing-key: dlq-refundQueue
+rabbitmq:
+  payment:
+    queue: paymentQueue
+    dlq: paymentQueue_DLQ
+  refund:
+    queue: refundQueue
+    dlq: refundQueue_DLQ
+client:
+  urls:
+    ms-auth: http://localhost:8080
+redis:
+  server:
+    urls: redis://localhost:6379

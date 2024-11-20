@@ -5,6 +5,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface PaymentProcessor {
-    void processPayment(String accessToken, PaymentEntity paymentEntity);
-    void processRefund(String accessToken, PaymentEntity paymentEntity);
+    void processPayment(PaymentEntity paymentEntity);
+    void processRefund(PaymentEntity paymentEntity);
 }

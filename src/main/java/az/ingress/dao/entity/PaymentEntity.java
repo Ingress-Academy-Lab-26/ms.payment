@@ -36,6 +36,9 @@ public class PaymentEntity {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "card_id")
+    private Long cardId;
+
     @Column(precision = 10, scale = 2)
     private BigDecimal amount;
 
@@ -50,14 +53,9 @@ public class PaymentEntity {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    /*
-    @Column(name = "created_by", nullable = false, updatable = false)
-    private Long createdBy;
+    @Column(name = "transaction_id")
+    private String transactionId;
 
-    @Column(name = "updated_by")
-    private Long updatedBy;
-
-    @Column(name = "status_updated_at")
-    private LocalDateTime statusUpdatedAt;
-     */
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
 }
