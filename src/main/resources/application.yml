@@ -1,0 +1,40 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    open-in-view: true
+  liquibase:
+    change-log: classpath:/liquibase/changelog-master.yml
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-interval: 10000
+          multiplier: 2.0
+          max-attempts: 5
+rabbitmq:
+  payment:
+    queue: paymentQueue
+    dlq: paymentQueue_DLQ
+  refund:
+    queue: refundQueue
+    dlq: refundQueue_DLQ
+client:
+  urls:
+    ms-auth: http://localhost:8080
+redis:
+  server:
+    urls: redis://localhost:6379
